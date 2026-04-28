@@ -1,0 +1,35 @@
+---
+# Connection wait settings
+az_configure_wait_timeout: 300    # seconds to wait for SSH/WinRM
+az_configure_wait_delay: 10       # seconds between retries
+
+# OS hardening / baseline config
+az_configure_update_packages: true
+az_configure_install_packages:
+  - vim
+  - curl
+  - wget
+  - unzip
+  - python3
+  - python3-pip
+
+az_configure_disable_services: []
+az_configure_enable_services:
+  - firewalld
+
+# Firewall rules (firewalld) — applied if firewalld is in enable_services
+az_configure_firewalld_services:
+  - ssh
+az_configure_firewalld_ports: []
+# Example:
+# az_configure_firewalld_ports:
+#   - port: "8080/tcp"
+
+# MOTD / hostname
+az_configure_set_hostname: true
+az_configure_motd: |
+  ############################################################
+  #  Managed by Ansible Automation Platform
+  #  Environment : {{ az_environment | default('unknown') }}
+  #  Project     : {{ az_project | default('unknown') }}
+  ############################################################

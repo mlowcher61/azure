@@ -1,0 +1,29 @@
+---
+az_nic_name: "{{ az_project | default('myproject') }}-{{ az_environment | default('dev') }}-nic"
+az_vm_name: "{{ az_project | default('myproject') }}-{{ az_environment | default('dev') }}-vm01"
+az_vm_size: Standard_D2s_v3
+az_vm_state: present   # present | absent | deallocated | stopped
+
+# OS Image
+az_os_publisher: RedHat
+az_os_offer: RHEL
+az_os_sku: "9-lvm-gen2"
+az_os_version: latest
+
+# OS Disk
+az_os_disk_size_gb: 64
+az_os_disk_type: Premium_LRS
+az_os_disk_caching: ReadWrite
+
+# Auth — values come from AAP Custom Credential injected as env vars
+# or passed as extra_vars/survey variables (never hardcoded here)
+az_admin_username: azureuser
+az_vm_auth_type: password   # password | ssh
+
+# Data disks — empty by default, override to attach additional disks
+az_data_disks: []
+
+# Boot diagnostics — uses storage account created by azure_storage role
+az_boot_diagnostics_enabled: true
+
+az_common_tags: {}

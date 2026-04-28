@@ -1,0 +1,127 @@
+---
+# =============================================================================
+# Role: azure_vm
+# Creates the NIC (with optional PIP) then the VM.
+# Auth credentials (az_admin_password or az_ssh_public_key) must be provided
+# via AAP Survey, Custom Credential, or extra_vars — never stored in the repo.
+# =============================================================================
+
+# --- NIC ---------------------------------------------------------------------
+
+- name: Ensure Network Interface is {{ az_vm_state }}
+  azure.azcollection.azure_rm_networkinterface:
+    resource_group: "{{ az_resource_group }}"
+    name: "{{ az_nic_name }}"
+    virtual_network: "{{ az_vnet_name }}"
+    subnet: "{{ az_subnet_name }}"
+    security_group: "{{ az_nsg_name }}"
+    public_ip_name: "{{ az_public_ip_name if az_public_ip_enabled | bool else omit }}"
+    state: "{{ az_vm_state if az_vm_state in ['present', 'absent'] else 'present' }}"
+    tags: "{{ az_common_tags }}"
+  register: nic_result
+  tags:
+    - deploy
+    - vm
+    - nic
+
+- name: Display NIC info
+  ansible.builtin.debug:
+    msg: "NIC '{{ az_nic_name }}' ready — ID: {{ nic_result.state.id | default('n/a') }}"
+  when:
+    - nic_result is defined
+    - az_vm_state == 'present'
+  tags:
+    - deploy
+    - vm
+    - nic
+
+# --- VM (password auth) ------------------------------------------------------
+
+- name: Ensure VM is {{ az_vm_state }} (password auth)
+  azure.azcollection.azure_rm_virtualmachine:
+    resource_group: "{{ az_resource_group }}"
+    name: "{{ az_vm_name }}"
+    vm_size: "{{ az_vm_size }}"
+    admin_username: "{{ az_admin_username }}"
+    admin_password: "{{ az_admin_password }}"
+    network_interfaces: "{{ az_nic_name }}"
+    state: "{{ az_vm_state }}"
+    tags: "{{ az_common_tags }}"
+    image:
+      publisher: "{{ az_os_publisher }}"
+      offer: "{{ az_os_offer }}"
+      sku: "{{ az_os_sku }}"
+      version: "{{ az_os_version }}"
+    managed_disk_type: "{{ az_os_disk_type }}"
+    os_disk_size_gb: "{{ az_os_disk_size_gb }}"
+    os_disk_caching: "{{ az_os_disk_caching }}"
+    data_disks: "{{ az_data_disks | default([]) }}"
+    boot_diagnostics:
+      enabled: "{{ az_boot_diagnostics_enabled | bool }}"
+      storage_account: "{{ az_storage_account_name }}"
+  register: vm_result
+  when: az_vm_auth_type == 'password'
+  tags:
+    - deploy
+    - vm
+
+# --- VM (SSH key auth) -------------------------------------------------------
+
+- name: Ensure VM is {{ az_vm_state }} (SSH key auth)
+  azure.azcollection.azure_rm_virtualmachine:
+    resource_group: "{{ az_resource_group }}"
+    name: "{{ az_vm_name }}"
+    vm_size: "{{ az_vm_size }}"
+    admin_username: "{{ az_admin_username }}"
+    ssh_password_enabled: false
+    ssh_public_keys:
+      - path: "/home/{{ az_admin_username }}/.ssh/authorized_keys"
+        key_data: "{{ az_ssh_public_key }}"
+    network_interfaces: "{{ az_nic_name }}"
+    state: "{{ az_vm_state }}"
+    tags: "{{ az_common_tags }}"
+    image:
+      publisher: "{{ az_os_publisher }}"
+      offer: "{{ az_os_offer }}"
+      sku: "{{ az_os_sku }}"
+      version: "{{ az_os_version }}"
+    managed_disk_type: "{{ az_os_disk_type }}"
+    os_disk_size_gb: "{{ az_os_disk_size_gb }}"
+    os_disk_caching: "{{ az_os_disk_caching }}"
+    data_disks: "{{ az_data_disks | default([]) }}"
+    boot_diagnostics:
+      enabled: "{{ az_boot_diagnostics_enabled | bool }}"
+      storage_account: "{{ az_storage_account_name }}"
+  register: vm_result
+  when: az_vm_auth_type == 'ssh'
+  tags:
+    - deploy
+    - vm
+
+# --- Post-creation facts -----------------------------------------------------
+
+- name: Store VM facts
+  ansible.builtin.set_fact:
+    az_vm_id: "{{ vm_result.ansible_facts.azure_vm.id | default('') }}"
+    az_vm_private_ip: "{{ vm_result.ansible_facts.azure_vm.properties.networkProfile.networkInterfaces[0].properties.ipConfigurations[0].properties.privateIPAddress | default('') }}"
+  when:
+    - vm_result is defined
+    - az_vm_state == 'present'
+    - vm_result.ansible_facts is defined
+  tags:
+    - deploy
+    - vm
+
+- name: Display VM summary
+  ansible.builtin.debug:
+    msg:
+      - "VM Name    : {{ az_vm_name }}"
+      - "Size       : {{ az_vm_size }}"
+      - "OS         : {{ az_os_publisher }} {{ az_os_offer }} {{ az_os_sku }}"
+      - "Private IP : {{ az_vm_private_ip | default('unknown') }}"
+      - "Public IP  : {{ az_public_ip_address | default('none') }}"
+      - "Auth Type  : {{ az_vm_auth_type }}"
+  when: az_vm_state == 'present'
+  tags:
+    - deploy
+    - vm

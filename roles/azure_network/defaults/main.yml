@@ -1,0 +1,7 @@
+---
+az_vnet_name: "{{ az_project | default('myproject') }}-{{ az_environment | default('dev') }}-vnet"
+az_subnet_name: "{{ az_project | default('myproject') }}-{{ az_environment | default('dev') }}-subnet"
+az_vnet_address_prefix: "10.10.0.0/16"
+az_subnet_prefix: "10.10.1.0/24"
+az_network_state: present   # present | absent
+az_common_tags: {}

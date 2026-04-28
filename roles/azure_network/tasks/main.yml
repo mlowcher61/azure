@@ -1,0 +1,53 @@
+---
+# =============================================================================
+# Role: azure_network
+# Creates VNet and Subnet. Resource Group must already exist.
+# =============================================================================
+
+- name: Ensure Virtual Network is {{ az_network_state }}
+  azure.azcollection.azure_rm_virtualnetwork:
+    resource_group: "{{ az_resource_group }}"
+    name: "{{ az_vnet_name }}"
+    address_prefixes: "{{ az_vnet_address_prefix }}"
+    state: "{{ az_network_state }}"
+    tags: "{{ az_common_tags }}"
+  register: vnet_result
+  tags:
+    - provision
+    - network
+
+- name: Display VNet info
+  ansible.builtin.debug:
+    msg: "VNet '{{ az_vnet_name }}' provisioned with prefix {{ az_vnet_address_prefix }}"
+  when: vnet_result is defined and az_network_state == 'present'
+  tags:
+    - provision
+    - network
+
+- name: Ensure Subnet is {{ az_network_state }}
+  azure.azcollection.azure_rm_subnet:
+    resource_group: "{{ az_resource_group }}"
+    virtual_network_name: "{{ az_vnet_name }}"
+    name: "{{ az_subnet_name }}"
+    address_prefix: "{{ az_subnet_prefix }}"
+    state: "{{ az_network_state }}"
+  register: subnet_result
+  tags:
+    - provision
+    - network
+
+- name: Display Subnet info
+  ansible.builtin.debug:
+    msg: "Subnet '{{ az_subnet_name }}' provisioned with prefix {{ az_subnet_prefix }}"
+  when: subnet_result is defined and az_network_state == 'present'
+  tags:
+    - provision
+    - network
+
+- name: Store subnet ID as fact
+  ansible.builtin.set_fact:
+    az_subnet_id: "{{ subnet_result.state.id }}"
+  when: az_network_state == 'present' and subnet_result.state is defined
+  tags:
+    - provision
+    - network

@@ -1,0 +1,59 @@
+---
+# =============================================================================
+# Role: azure_public_ip
+# Conditionally creates a Public IP. Set az_public_ip_enabled: false to
+# deploy a private-only VM with no inbound public internet access.
+# =============================================================================
+
+- name: Ensure Public IP Address is {{ az_public_ip_state }}
+  azure.azcollection.azure_rm_publicipaddress:
+    resource_group: "{{ az_resource_group }}"
+    name: "{{ az_public_ip_name }}"
+    allocation_method: "{{ az_public_ip_allocation_method }}"
+    sku: "{{ az_public_ip_sku }}"
+    domain_name: "{{ az_public_ip_domain_label | default(omit) }}"
+    state: "{{ az_public_ip_state }}"
+    tags: "{{ az_common_tags }}"
+  register: pip_result
+  when: az_public_ip_enabled | bool
+  tags:
+    - deploy
+    - network
+    - public_ip
+
+- name: Display Public IP info
+  ansible.builtin.debug:
+    msg: >-
+      Public IP '{{ az_public_ip_name }}':
+      {{ pip_result.state.ip_address | default('pending allocation') }}
+  when:
+    - az_public_ip_enabled | bool
+    - az_public_ip_state == 'present'
+    - pip_result is defined
+  tags:
+    - deploy
+    - network
+    - public_ip
+
+- name: Store Public IP facts
+  ansible.builtin.set_fact:
+    az_public_ip_id: "{{ pip_result.state.id | default('') }}"
+    az_public_ip_address: "{{ pip_result.state.ip_address | default('') }}"
+  when:
+    - az_public_ip_enabled | bool
+    - az_public_ip_state == 'present'
+    - pip_result is defined
+  tags:
+    - deploy
+    - network
+    - public_ip
+
+- name: Set empty Public IP facts when PIP is disabled
+  ansible.builtin.set_fact:
+    az_public_ip_id: ""
+    az_public_ip_address: ""
+  when: not (az_public_ip_enabled | bool)
+  tags:
+    - deploy
+    - network
+    - public_ip

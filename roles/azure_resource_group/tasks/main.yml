@@ -1,0 +1,27 @@
+---
+# =============================================================================
+# Role: azure_resource_group
+# Ensures the target Resource Group exists (or is absent for teardown).
+# Azure SP credentials are injected by AAP as AZURE_* environment variables.
+# =============================================================================
+
+- name: Ensure Azure Resource Group is {{ az_rg_state }}
+  azure.azcollection.azure_rm_resourcegroup:
+    name: "{{ az_resource_group }}"
+    location: "{{ az_location }}"
+    state: "{{ az_rg_state }}"
+    tags: "{{ az_common_tags }}"
+  register: rg_result
+  tags:
+    - provision
+    - resource_group
+
+- name: Display Resource Group info
+  ansible.builtin.debug:
+    msg: >-
+      Resource Group '{{ az_resource_group }}' is {{ rg_result.state.provisioning_state | default('unknown') }}
+      in {{ az_location }}
+  when: rg_result is defined and az_rg_state == 'present'
+  tags:
+    - provision
+    - resource_group

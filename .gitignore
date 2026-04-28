@@ -1,0 +1,35 @@
+# Ansible
+*.retry
+.vault_pass
+.vault_pass.txt
+
+# AAP / ansible-builder artifacts
+context/
+_build/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.python-version
+.venv/
+venv/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets — never commit these
+*.pem
+*.key
+id_rsa
+id_ed25519
+secrets.yml
+credentials.yml

@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  role_name: azure_network
+  author: ansible-automation-platform
+  description: Creates and manages Azure Virtual Network and Subnet
+  license: Apache-2.0
+  min_ansible_version: "2.14"
+  platforms:
+    - name: all
+  galaxy_tags:
+    - azure
+    - cloud
+    - networking
+
+dependencies:
+  - role: azure_resource_group

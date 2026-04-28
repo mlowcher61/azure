@@ -1,0 +1,15 @@
+---
+galaxy_info:
+  role_name: azure_resource_group
+  author: ansible-automation-platform
+  description: Creates and manages an Azure Resource Group
+  license: Apache-2.0
+  min_ansible_version: "2.14"
+  platforms:
+    - name: all
+  galaxy_tags:
+    - azure
+    - cloud
+    - infrastructure
+
+dependencies: []

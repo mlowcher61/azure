@@ -1,0 +1,113 @@
+---
+# =============================================================================
+# Playbook: destroy_infra.yml
+# AAP Job Template: Destroy Azure Environment (manual trigger only)
+#
+# Tears down ALL resources in the target Resource Group in reverse order:
+#   VM → NIC → Public IP → NSG → Subnet → VNet → Storage → Resource Group
+#
+# SAFETY GATE: This playbook will not proceed unless the extra_var
+#   confirm_destroy=true  is explicitly passed.
+#
+# Recommended AAP Job Template settings:
+#   - Ask for extra variables on launch: enabled
+#   - Survey: prompt for confirm_destroy (text field, no default)
+#   - Limit to specific environments via extra_vars
+# =============================================================================
+
+- name: Destroy Azure Infrastructure
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  pre_tasks:
+    - name: Safety gate — require explicit confirmation
+      ansible.builtin.assert:
+        that:
+          - confirm_destroy is defined
+          - confirm_destroy | bool
+        fail_msg: >-
+          DESTROY ABORTED.
+          You must pass extra_var 'confirm_destroy=true' to proceed.
+          This is a destructive operation that cannot be undone.
+        success_msg: "Confirmation received — proceeding with teardown"
+      tags: [always]
+
+    - name: Display teardown targets
+      ansible.builtin.debug:
+        msg:
+          - "⚠️  DESTROYING environment: {{ az_environment | default(env | default('dev')) }}"
+          - "⚠️  Project              : {{ az_project | default('myproject') }}"
+          - "⚠️  Resource Group       : {{ az_resource_group | default('undefined') }}"
+          - "⚠️  Location             : {{ az_location | default('eastus') }}"
+      tags: [always]
+
+  tasks:
+    # Remove VM first (so NIC/PIP can be deleted)
+    - name: Remove Virtual Machine
+      azure.azcollection.azure_rm_virtualmachine:
+        resource_group: "{{ az_resource_group }}"
+        name: "{{ az_vm_name }}"
+        state: absent
+        remove_on_absent:
+          - all
+      tags: [destroy, vm]
+
+    - name: Remove Network Interface
+      azure.azcollection.azure_rm_networkinterface:
+        resource_group: "{{ az_resource_group }}"
+        name: "{{ az_nic_name }}"
+        state: absent
+      tags: [destroy, network]
+
+    - name: Remove Public IP Address
+      azure.azcollection.azure_rm_publicipaddress:
+        resource_group: "{{ az_resource_group }}"
+        name: "{{ az_public_ip_name }}"
+        state: absent
+      when: az_public_ip_enabled | default(true) | bool
+      tags: [destroy, network]
+
+    - name: Remove Network Security Group
+      azure.azcollection.azure_rm_securitygroup:
+        resource_group: "{{ az_resource_group }}"
+        name: "{{ az_nsg_name }}"
+        state: absent
+      tags: [destroy, security]
+
+    - name: Remove Subnet
+      azure.azcollection.azure_rm_subnet:
+        resource_group: "{{ az_resource_group }}"
+        virtual_network_name: "{{ az_vnet_name }}"
+        name: "{{ az_subnet_name }}"
+        state: absent
+      tags: [destroy, network]
+
+    - name: Remove Virtual Network
+      azure.azcollection.azure_rm_virtualnetwork:
+        resource_group: "{{ az_resource_group }}"
+        name: "{{ az_vnet_name }}"
+        state: absent
+      tags: [destroy, network]
+
+    - name: Remove Storage Account
+      azure.azcollection.azure_rm_storageaccount:
+        resource_group: "{{ az_resource_group }}"
+        name: "{{ az_storage_account_name }}"
+        state: absent
+      tags: [destroy, storage]
+
+    - name: Remove Resource Group
+      azure.azcollection.azure_rm_resourcegroup:
+        name: "{{ az_resource_group }}"
+        state: absent
+        force_delete_nonempty: true
+      tags: [destroy, resource_group]
+
+  post_tasks:
+    - name: Teardown complete
+      ansible.builtin.debug:
+        msg:
+          - "✔ All resources for project '{{ az_project | default('myproject') }}'"
+          - "  environment '{{ az_environment | default(env | default('dev')) }}' have been removed."
+      tags: [always]

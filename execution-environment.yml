@@ -1,0 +1,41 @@
+---
+version: 3
+
+build_arg_defaults:
+  EE_BASE_IMAGE: 'registry.redhat.io/ansible-automation-platform/ee-minimal-rhel9:latest'
+
+images:
+  base_image:
+    name: registry.redhat.io/ansible-automation-platform/ee-minimal-rhel9:latest
+
+dependencies:
+  galaxy:
+    collections:
+      - name: azure.azcollection
+        version: ">=2.0.0"
+      - name: community.general
+        version: ">=9.0.0"
+      - name: ansible.posix
+        version: ">=1.5.0"
+
+  python:
+    - azure-cli-core
+    - azure-mgmt-compute>=30.0.0
+    - azure-mgmt-network>=25.0.0
+    - azure-mgmt-resource>=23.0.0
+    - azure-mgmt-storage>=21.0.0
+    - azure-identity>=1.14.0
+    - azure-common>=1.1.28
+    - msrestazure>=0.6.4
+    - packaging
+
+  system:
+    - gcc [platform:rpm]
+    - python3-devel [platform:rpm]
+
+additional_build_steps:
+  prepend_galaxy:
+    - RUN pip3 install --upgrade pip
+
+  append_final:
+    - RUN ansible-galaxy collection list

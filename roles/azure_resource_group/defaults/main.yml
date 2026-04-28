@@ -1,0 +1,6 @@
+---
+# Role defaults — override via group_vars, extra_vars, or AAP survey
+az_resource_group: "{{ az_project | default('myproject') }}-{{ az_environment | default('dev') }}-rg"
+az_location: eastus
+az_rg_state: present   # present | absent
+az_common_tags: {}

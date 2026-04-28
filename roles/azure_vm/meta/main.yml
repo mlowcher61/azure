@@ -1,0 +1,20 @@
+---
+galaxy_info:
+  role_name: azure_vm
+  author: ansible-automation-platform
+  description: Creates Azure NIC and Virtual Machine
+  license: Apache-2.0
+  min_ansible_version: "2.14"
+  platforms:
+    - name: all
+  galaxy_tags:
+    - azure
+    - cloud
+    - compute
+
+dependencies:
+  - role: azure_resource_group
+  - role: azure_network
+  - role: azure_security_group
+  - role: azure_storage
+  - role: azure_public_ip

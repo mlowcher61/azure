@@ -1,0 +1,43 @@
+---
+# =============================================================================
+# Playbook: configure_vm.yml
+# AAP Job Template 3 of 3
+#
+# Post-deploy OS baseline configuration.
+# Targets VMs discovered via AAP's Azure dynamic inventory source,
+# filtered by the 'managed_by' and 'environment' tags set during provisioning.
+#
+# Required AAP setup:
+#   - Credential: Machine Credential (SSH key or password for az_admin_username)
+#   - Inventory:  Azure dynamic inventory source — filter by tag:
+#                   managed_by = ansible-automation-platform
+#                   environment = <env>
+#   - EE:         Custom EE with azure.azcollection + ansible.posix
+#
+# The dynamic inventory group name from azure.azcollection is derived from
+# the 'project' tag on the VM: tag_project_<value>
+# Adjust 'hosts:' below to match your tagging strategy.
+# =============================================================================
+
+- name: Configure Azure Virtual Machine
+  hosts: "tag_managed_by_ansible_automation_platform"
+  gather_facts: false
+
+  vars:
+    ansible_user: "{{ az_admin_username | default('azureuser') }}"
+
+  pre_tasks:
+    - name: Display target hosts
+      ansible.builtin.debug:
+        msg: "Configuring host: {{ inventory_hostname }}"
+      tags: [always]
+
+  roles:
+    - role: azure_vm_configure
+      tags: [configure]
+
+  post_tasks:
+    - name: Configuration complete
+      ansible.builtin.debug:
+        msg: "✔ Host {{ inventory_hostname }} configured successfully"
+      tags: [always]

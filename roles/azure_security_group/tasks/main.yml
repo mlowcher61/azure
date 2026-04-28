@@ -1,0 +1,39 @@
+---
+# =============================================================================
+# Role: azure_security_group
+# Creates NSG with configurable rules. Rules are defined in az_nsg_rules.
+# Override az_nsg_rules in group_vars or AAP extra_vars to customise ports.
+# =============================================================================
+
+- name: Ensure Network Security Group is {{ az_nsg_state }}
+  azure.azcollection.azure_rm_securitygroup:
+    resource_group: "{{ az_resource_group }}"
+    name: "{{ az_nsg_name }}"
+    state: "{{ az_nsg_state }}"
+    tags: "{{ az_common_tags }}"
+    rules: "{{ az_nsg_rules }}"
+  register: nsg_result
+  tags:
+    - provision
+    - security
+    - nsg
+
+- name: Display NSG info
+  ansible.builtin.debug:
+    msg: >-
+      NSG '{{ az_nsg_name }}' is {{ az_nsg_state }} with
+      {{ az_nsg_rules | length }} rules configured
+  when: az_nsg_state == 'present'
+  tags:
+    - provision
+    - security
+    - nsg
+
+- name: Store NSG ID as fact
+  ansible.builtin.set_fact:
+    az_nsg_id: "{{ nsg_result.state.id }}"
+  when: az_nsg_state == 'present' and nsg_result.state is defined
+  tags:
+    - provision
+    - security
+    - nsg

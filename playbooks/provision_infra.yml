@@ -1,0 +1,63 @@
+---
+# =============================================================================
+# Playbook: provision_infra.yml
+# AAP Job Template 1 of 3
+#
+# Provisions foundational Azure infrastructure:
+#   Resource Group → Virtual Network → Subnet → NSG → Storage Account
+#
+# Required AAP setup:
+#   - Credential: Azure Resource Manager (SP creds injected as AZURE_* env vars)
+#   - Inventory:  localhost (runs azure_rm modules locally against Azure API)
+#   - EE:         Custom EE with azure.azcollection
+#
+# Survey variables (optional overrides):
+#   - env         (default: dev)
+#   - project     (default: myproject)
+#   - az_location (default: eastus)
+# =============================================================================
+
+- name: Provision Azure Infrastructure
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  vars:
+    az_rg_state: present
+    az_network_state: present
+    az_nsg_state: present
+    az_storage_state: present
+
+  pre_tasks:
+    - name: Display provisioning targets
+      ansible.builtin.debug:
+        msg:
+          - "Project     : {{ az_project | default('myproject') }}"
+          - "Environment : {{ az_environment | default(env | default('dev')) }}"
+          - "Location    : {{ az_location | default('eastus') }}"
+          - "Resource RG : {{ az_resource_group | default('undefined') }}"
+      tags: [always]
+
+  roles:
+    - role: azure_resource_group
+      tags: [provision, resource_group]
+
+    - role: azure_network
+      tags: [provision, network]
+
+    - role: azure_security_group
+      tags: [provision, security]
+
+    - role: azure_storage
+      tags: [provision, storage]
+
+  post_tasks:
+    - name: Infrastructure provisioning complete
+      ansible.builtin.debug:
+        msg:
+          - "✔ Resource Group : {{ az_resource_group }}"
+          - "✔ VNet           : {{ az_vnet_name }} ({{ az_vnet_address_prefix }})"
+          - "✔ Subnet         : {{ az_subnet_name }} ({{ az_subnet_prefix }})"
+          - "✔ NSG            : {{ az_nsg_name }}"
+          - "✔ Storage        : {{ az_storage_account_name }}"
+      tags: [always]

@@ -1,0 +1,159 @@
+---
+# =============================================================================
+# Role: azure_vm_configure
+# Post-deploy OS baseline configuration. Runs against the newly created VM
+# after AAP dynamic inventory has picked it up (tagged VMs).
+# =============================================================================
+
+# --- Wait for VM to become reachable -----------------------------------------
+
+- name: Wait for SSH to become available
+  ansible.builtin.wait_for_connection:
+    timeout: "{{ az_configure_wait_timeout }}"
+    sleep: "{{ az_configure_wait_delay }}"
+  tags:
+    - configure
+    - always
+
+- name: Gather facts
+  ansible.builtin.setup:
+  tags:
+    - configure
+    - always
+
+# --- Hostname ----------------------------------------------------------------
+
+- name: Set hostname to match inventory name
+  ansible.builtin.hostname:
+    name: "{{ inventory_hostname }}"
+  when: az_configure_set_hostname | bool
+  tags:
+    - configure
+    - baseline
+
+# --- Package updates ---------------------------------------------------------
+
+- name: Update all packages (RHEL/CentOS)
+  ansible.builtin.dnf:
+    name: "*"
+    state: latest
+    update_cache: true
+  when:
+    - az_configure_update_packages | bool
+    - ansible_os_family == "RedHat"
+  tags:
+    - configure
+    - packages
+
+- name: Update all packages (Debian/Ubuntu)
+  ansible.builtin.apt:
+    upgrade: dist
+    update_cache: true
+  when:
+    - az_configure_update_packages | bool
+    - ansible_os_family == "Debian"
+  tags:
+    - configure
+    - packages
+
+- name: Install baseline packages (RHEL/CentOS)
+  ansible.builtin.dnf:
+    name: "{{ az_configure_install_packages }}"
+    state: present
+  when:
+    - az_configure_install_packages | length > 0
+    - ansible_os_family == "RedHat"
+  tags:
+    - configure
+    - packages
+
+- name: Install baseline packages (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name: "{{ az_configure_install_packages }}"
+    state: present
+  when:
+    - az_configure_install_packages | length > 0
+    - ansible_os_family == "Debian"
+  tags:
+    - configure
+    - packages
+
+# --- Services ----------------------------------------------------------------
+
+- name: Enable and start services
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  loop: "{{ az_configure_enable_services }}"
+  when: az_configure_enable_services | length > 0
+  tags:
+    - configure
+    - services
+
+- name: Disable and stop services
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+  loop: "{{ az_configure_disable_services }}"
+  when: az_configure_disable_services | length > 0
+  tags:
+    - configure
+    - services
+
+# --- Firewall ----------------------------------------------------------------
+
+- name: Allow firewalld services
+  ansible.posix.firewalld:
+    service: "{{ item }}"
+    permanent: true
+    state: enabled
+    immediate: true
+  loop: "{{ az_configure_firewalld_services }}"
+  when:
+    - "'firewalld' in az_configure_enable_services"
+    - az_configure_firewalld_services | length > 0
+  tags:
+    - configure
+    - firewall
+
+- name: Allow firewalld ports
+  ansible.posix.firewalld:
+    port: "{{ item.port }}"
+    permanent: true
+    state: enabled
+    immediate: true
+  loop: "{{ az_configure_firewalld_ports }}"
+  when:
+    - "'firewalld' in az_configure_enable_services"
+    - az_configure_firewalld_ports | length > 0
+  tags:
+    - configure
+    - firewall
+
+# --- MOTD --------------------------------------------------------------------
+
+- name: Set MOTD
+  ansible.builtin.copy:
+    content: "{{ az_configure_motd }}"
+    dest: /etc/motd
+    owner: root
+    group: root
+    mode: "0644"
+  tags:
+    - configure
+    - baseline
+
+# --- Final verification ------------------------------------------------------
+
+- name: Verify VM is responding and show OS info
+  ansible.builtin.debug:
+    msg:
+      - "Hostname : {{ ansible_hostname }}"
+      - "OS       : {{ ansible_distribution }} {{ ansible_distribution_version }}"
+      - "Kernel   : {{ ansible_kernel }}"
+      - "IP       : {{ ansible_default_ipv4.address | default('unknown') }}"
+  tags:
+    - configure
+    - always

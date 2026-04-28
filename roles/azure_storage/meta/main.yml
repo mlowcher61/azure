@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  role_name: azure_storage
+  author: ansible-automation-platform
+  description: Creates Azure Storage Account for VM boot diagnostics
+  license: Apache-2.0
+  min_ansible_version: "2.14"
+  platforms:
+    - name: all
+  galaxy_tags:
+    - azure
+    - cloud
+    - storage
+
+dependencies:
+  - role: azure_resource_group

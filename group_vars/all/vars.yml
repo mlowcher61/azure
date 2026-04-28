@@ -1,0 +1,84 @@
+---
+# =============================================================================
+# Azure Global Defaults
+# All sensitive values (SP creds, SSH keys, passwords) are managed as
+# AAP Credentials and injected as environment variables at runtime.
+# =============================================================================
+
+# --- Location & Naming -------------------------------------------------------
+az_location: eastus
+az_environment: "{{ env | default('dev') }}"
+az_project: "{{ project | default('myproject') }}"
+
+# Resource naming convention: <project>-<environment>-<resource>
+az_resource_group: "{{ az_project }}-{{ az_environment }}-rg"
+az_vnet_name: "{{ az_project }}-{{ az_environment }}-vnet"
+az_subnet_name: "{{ az_project }}-{{ az_environment }}-subnet"
+az_nsg_name: "{{ az_project }}-{{ az_environment }}-nsg"
+az_storage_account_name: "{{ az_project | replace('-', '') }}{{ az_environment }}sa"
+az_public_ip_name: "{{ az_project }}-{{ az_environment }}-pip"
+az_nic_name: "{{ az_project }}-{{ az_environment }}-nic"
+az_vm_name: "{{ az_project }}-{{ az_environment }}-vm01"
+
+# --- Networking --------------------------------------------------------------
+az_vnet_address_prefix: "10.10.0.0/16"
+az_subnet_prefix: "10.10.1.0/24"
+
+# --- Security Group Rules ----------------------------------------------------
+# Override az_nsg_rules in your Job Template survey or extra_vars to add ports
+az_nsg_rules:
+  - name: allow_ssh
+    protocol: Tcp
+    destination_port_range: "22"
+    access: Allow
+    priority: 100
+    direction: Inbound
+  - name: allow_https
+    protocol: Tcp
+    destination_port_range: "443"
+    access: Allow
+    priority: 110
+    direction: Inbound
+  - name: deny_all_inbound
+    protocol: "*"
+    destination_port_range: "*"
+    access: Deny
+    priority: 4096
+    direction: Inbound
+
+# --- Storage -----------------------------------------------------------------
+az_storage_kind: StorageV2
+az_storage_sku: Standard_LRS
+az_storage_access_tier: Hot
+
+# --- Virtual Machine ---------------------------------------------------------
+az_vm_size: Standard_D2s_v3
+az_admin_username: azureuser
+# az_admin_password and az_ssh_public_key come from AAP Custom Credential
+
+az_os_publisher: RedHat
+az_os_offer: RHEL
+az_os_sku: "9-lvm-gen2"
+az_os_version: latest
+
+az_os_disk_size_gb: 64
+az_os_disk_type: Premium_LRS
+az_os_disk_caching: ReadWrite
+
+az_data_disks: []
+# Example data disk:
+# az_data_disks:
+#   - lun: 0
+#     disk_size_gb: 128
+#     managed_disk_type: Premium_LRS
+#     caching: ReadOnly
+
+az_vm_auth_type: password   # password or ssh  — set via AAP survey
+az_public_ip_enabled: true  # set false for private-only VMs
+
+# --- Common Tags -------------------------------------------------------------
+az_common_tags:
+  managed_by: ansible-automation-platform
+  environment: "{{ az_environment }}"
+  project: "{{ az_project }}"
+  provisioned_date: "{{ ansible_date_time.date | default('unknown') }}"

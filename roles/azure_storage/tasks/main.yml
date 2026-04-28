@@ -1,0 +1,44 @@
+---
+# =============================================================================
+# Role: azure_storage
+# Creates a Storage Account used for VM boot diagnostics.
+# Storage account names must be globally unique, 3-24 chars, lowercase/digits.
+# =============================================================================
+
+- name: Validate storage account name length
+  ansible.builtin.assert:
+    that:
+      - az_storage_account_name | length >= 3
+      - az_storage_account_name | length <= 24
+    fail_msg: >-
+      Storage account name '{{ az_storage_account_name }}' must be 3-24 characters.
+      Adjust az_project/az_environment or override az_storage_account_name directly.
+    success_msg: "Storage account name '{{ az_storage_account_name }}' length is valid"
+  when: az_storage_state == 'present'
+  tags:
+    - provision
+    - storage
+
+- name: Ensure Storage Account is {{ az_storage_state }}
+  azure.azcollection.azure_rm_storageaccount:
+    resource_group: "{{ az_resource_group }}"
+    name: "{{ az_storage_account_name }}"
+    kind: "{{ az_storage_kind }}"
+    sku: "{{ az_storage_sku }}"
+    access_tier: "{{ az_storage_access_tier }}"
+    state: "{{ az_storage_state }}"
+    tags: "{{ az_common_tags }}"
+    https_only: true
+    minimum_tls_version: TLS1_2
+  register: storage_result
+  tags:
+    - provision
+    - storage
+
+- name: Display Storage Account info
+  ansible.builtin.debug:
+    msg: "Storage Account '{{ az_storage_account_name }}' is {{ az_storage_state }}"
+  when: az_storage_state == 'present'
+  tags:
+    - provision
+    - storage

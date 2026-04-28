@@ -1,0 +1,7 @@
+---
+az_storage_account_name: "{{ (az_project | default('myproject') | replace('-', '')) }}{{ az_environment | default('dev') }}sa"
+az_storage_kind: StorageV2
+az_storage_sku: Standard_LRS
+az_storage_access_tier: Hot
+az_storage_state: present   # present | absent
+az_common_tags: {}

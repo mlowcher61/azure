@@ -1,0 +1,8 @@
+---
+az_public_ip_name: "{{ az_project | default('myproject') }}-{{ az_environment | default('dev') }}-pip"
+az_public_ip_allocation_method: Static   # Static | Dynamic
+az_public_ip_sku: Standard               # Standard required for Static + zone redundancy
+az_public_ip_enabled: true               # Set false to skip PIP creation (private VM)
+az_public_ip_state: present              # present | absent
+az_public_ip_domain_label: ""            # Optional DNS label — leave empty to skip
+az_common_tags: {}

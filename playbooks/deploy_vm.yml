@@ -1,0 +1,74 @@
+---
+# =============================================================================
+# Playbook: deploy_vm.yml
+# AAP Job Template 2 of 3
+#
+# Deploys the Azure Virtual Machine:
+#   Public IP (optional) → NIC → VM
+#
+# Required AAP setup:
+#   - Credential: Azure Resource Manager (SP creds as AZURE_* env vars)
+#   - Credential: Machine or Custom Credential supplying:
+#                   az_admin_password  OR  az_ssh_public_key
+#   - Inventory:  localhost
+#   - EE:         Custom EE with azure.azcollection
+#
+# Survey variables:
+#   - env                    (default: dev)
+#   - project                (default: myproject)
+#   - az_vm_size             (default: Standard_D2s_v3)
+#   - az_vm_auth_type        (password | ssh)
+#   - az_admin_password      (required if auth_type=password — mark as secret)
+#   - az_ssh_public_key      (required if auth_type=ssh — mark as secret)
+#   - az_public_ip_enabled   (true | false)
+# =============================================================================
+
+- name: Deploy Azure Virtual Machine
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  vars:
+    az_vm_state: present
+    az_public_ip_state: present
+
+  pre_tasks:
+    - name: Validate required auth variable is provided
+      ansible.builtin.assert:
+        that:
+          - (az_vm_auth_type == 'password' and az_admin_password is defined and az_admin_password | length > 0)
+            or
+            (az_vm_auth_type == 'ssh' and az_ssh_public_key is defined and az_ssh_public_key | length > 0)
+        fail_msg: >-
+          Authentication variable missing.
+          For auth_type 'password' provide az_admin_password.
+          For auth_type 'ssh' provide az_ssh_public_key.
+      tags: [always]
+
+    - name: Display VM deployment targets
+      ansible.builtin.debug:
+        msg:
+          - "VM Name    : {{ az_vm_name | default('undefined') }}"
+          - "VM Size    : {{ az_vm_size | default('Standard_D2s_v3') }}"
+          - "OS         : {{ az_os_publisher | default('RedHat') }} {{ az_os_offer | default('RHEL') }} {{ az_os_sku | default('9-lvm-gen2') }}"
+          - "Auth Type  : {{ az_vm_auth_type | default('password') }}"
+          - "Public IP  : {{ az_public_ip_enabled | default(true) }}"
+      tags: [always]
+
+  roles:
+    - role: azure_public_ip
+      tags: [deploy, public_ip]
+
+    - role: azure_vm
+      tags: [deploy, vm]
+
+  post_tasks:
+    - name: VM deployment complete
+      ansible.builtin.debug:
+        msg:
+          - "✔ VM Name  : {{ az_vm_name }}"
+          - "✔ NIC      : {{ az_nic_name }}"
+          - "✔ Public IP: {{ az_public_ip_address | default('none') }}"
+          - ""
+          - "Next step: Run configure_vm playbook or trigger Workflow next node."
+      tags: [always]

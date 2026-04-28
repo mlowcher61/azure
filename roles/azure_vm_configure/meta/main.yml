@@ -1,0 +1,21 @@
+---
+galaxy_info:
+  role_name: azure_vm_configure
+  author: ansible-automation-platform
+  description: Post-deploy OS configuration for Azure VMs
+  license: Apache-2.0
+  min_ansible_version: "2.14"
+  platforms:
+    - name: EL
+      versions:
+        - "8"
+        - "9"
+    - name: Ubuntu
+      versions:
+        - jammy
+  galaxy_tags:
+    - azure
+    - cloud
+    - configuration
+
+dependencies: []

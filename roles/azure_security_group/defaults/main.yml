@@ -1,0 +1,18 @@
+---
+az_nsg_name: "{{ az_project | default('myproject') }}-{{ az_environment | default('dev') }}-nsg"
+az_nsg_state: present   # present | absent
+az_common_tags: {}
+
+az_nsg_rules:
+  - name: allow_ssh
+    protocol: Tcp
+    destination_port_range: "22"
+    access: Allow
+    priority: 100
+    direction: Inbound
+  - name: deny_all_inbound
+    protocol: "*"
+    destination_port_range: "*"
+    access: Deny
+    priority: 4096
+    direction: Inbound
