@@ -82,7 +82,7 @@ This injects `AZURE_SUBSCRIPTION_ID`, `AZURE_CLIENT_ID`, `AZURE_SECRET`, and `AZ
 
 In AAP: **Resources → Projects → Add**  
 - Source Control Type: `Git`  
-- Source Control URL: `https://gitlab.com/mlowcher/<this-repo>.git` (or GitHub)  
+- Source Control URL: `https://github.com/mlowcher61/<this-repo>.git`   
 - Branch/Tag/Commit: `main`  
 - Update on launch: `enabled`
 
